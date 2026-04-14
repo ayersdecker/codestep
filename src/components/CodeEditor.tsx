@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { useStore } from '../store';
 import { Plus, Trash2, Play } from 'lucide-react';
 import { audioEngine } from '../engine/audioEngine';
+import { CodeCheatSheet } from './CodeCheatSheet';
 
 export const CodeEditor: React.FC = () => {
   const { song, activeLoopId, setActiveLoop, addLoop, removeLoop, updateLoopCode } = useStore();
@@ -64,36 +65,41 @@ export const CodeEditor: React.FC = () => {
             <p>No loop selected. Add a loop to get started.</p>
           </div>
         ) : (
-          <Editor
-            height="100%"
-            language="javascript"
-            theme="vs-dark"
-            value={activeLoop.code}
-            onChange={handleEditorChange}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              fontFamily: '"JetBrains Mono", "Fira Code", monospace',
-              lineNumbers: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              tabSize: 2,
-              wordWrap: 'on',
-              padding: { top: 16 },
-            }}
-            beforeMount={(monaco) => {
-              monaco.languages.typescript.javascriptDefaults.addExtraLib(
-                `
+          <div className="editor-layout">
+            <div className="editor-pane">
+              <Editor
+                height="100%"
+                language="javascript"
+                theme="vs-dark"
+                value={activeLoop.code}
+                onChange={handleEditorChange}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  tabSize: 2,
+                  wordWrap: 'on',
+                  padding: { top: 16 },
+                }}
+                beforeMount={(monaco) => {
+                  monaco.languages.typescript.javascriptDefaults.addExtraLib(
+                    `
 declare function note(pitch: string, duration: string): void;
 declare function rest(duration: string): void;
 declare function chord(pitches: string[], duration: string): void;
 /** Available durations: '1n' | '2n' | '4n' | '8n' | '16n' */
 type Duration = '1n' | '2n' | '4n' | '8n' | '16n';
 `,
-                'codestep-api.d.ts'
-              );
-            }}
-          />
+                    'codestep-api.d.ts'
+                  );
+                }}
+              />
+            </div>
+            <CodeCheatSheet />
+          </div>
         )}
       </div>
     </div>

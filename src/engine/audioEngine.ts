@@ -10,6 +10,7 @@ export class AudioEngine {
   private delay: Tone.FeedbackDelay;
   private limiter: Tone.Limiter;
   private filter: Tone.Filter;
+  private masterGain: Tone.Gain;
 
   constructor() {
     this.reverb = new Tone.Reverb({ decay: 2.5, wet: 0.2 });
@@ -17,11 +18,13 @@ export class AudioEngine {
     this.delay.wet.value = 0.1;
     this.filter = new Tone.Filter(2000, 'lowpass');
     this.limiter = new Tone.Limiter(-3);
+    this.masterGain = new Tone.Gain(0.8);
 
     this.reverb.connect(this.limiter);
     this.delay.connect(this.reverb);
     this.filter.connect(this.delay);
-    this.limiter.toDestination();
+    this.limiter.connect(this.masterGain);
+    this.masterGain.toDestination();
   }
 
   async start() {
@@ -36,6 +39,15 @@ export class AudioEngine {
 
   setBpm(bpm: number) {
     Tone.getTransport().bpm.value = bpm;
+  }
+
+  setMasterVolume(volume: number) {
+    const nextVolume = Math.max(0, Math.min(1, volume));
+    this.masterGain.gain.rampTo(nextVolume, 0.05);
+  }
+
+  getMasterVolume() {
+    return this.masterGain.gain.value;
   }
 
   private getOrCreateSynth(id: string): Tone.PolySynth {
@@ -149,6 +161,7 @@ export class AudioEngine {
     this.delay.dispose();
     this.filter.dispose();
     this.limiter.dispose();
+    this.masterGain.dispose();
   }
 }
 

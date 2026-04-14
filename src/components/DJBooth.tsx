@@ -5,6 +5,7 @@ import { audioEngine } from '../engine/audioEngine';
 
 export const DJBooth: React.FC = () => {
   const { song, isPlaying, setIsPlaying, setBpm, setCurrentBeat } = useStore();
+  const [masterVolume, setMasterVolume] = React.useState(() => audioEngine.getMasterVolume());
 
   const handlePlay = async () => {
     if (isPlaying) {
@@ -23,6 +24,11 @@ export const DJBooth: React.FC = () => {
     audioEngine.stop();
     setIsPlaying(false);
     setCurrentBeat(0);
+  };
+
+  const handleVolumeChange = (nextVolume: number) => {
+    setMasterVolume(nextVolume);
+    audioEngine.setMasterVolume(nextVolume);
   };
 
   return (
@@ -45,9 +51,20 @@ export const DJBooth: React.FC = () => {
           >
             {isPlaying ? <Square size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" />}
           </button>
-          <button className="btn-transport" onClick={() => audioEngine.playNote('C4')} title="Preview Note">
-            <Volume2 size={18} />
-          </button>
+          <div className="volume-control" title={`Volume ${Math.round(masterVolume * 100)}%`}>
+            <Volume2 size={16} />
+            <input
+              type="range"
+              className="volume-slider"
+              value={masterVolume}
+              min={0}
+              max={1}
+              step={0.01}
+              onChange={(e) => handleVolumeChange(Number(e.target.value))}
+              aria-label="Master volume"
+            />
+            <span className="volume-value">{Math.round(masterVolume * 100)}</span>
+          </div>
         </div>
 
         <div className="bpm-control">
