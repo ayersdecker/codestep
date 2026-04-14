@@ -142,7 +142,9 @@ export class AudioEngine {
 
   dispose() {
     this.sequences.forEach((seq) => { seq.stop(); seq.dispose(); });
+    this.sequences.clear();
     this.synths.forEach((s) => s.dispose());
+    this.synths.clear();
     this.reverb.dispose();
     this.delay.dispose();
     this.filter.dispose();

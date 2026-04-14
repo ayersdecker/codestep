@@ -3,8 +3,9 @@ import { useStore } from '../store';
 import { Send, Bot, User } from 'lucide-react';
 import type { ChatMessage } from '../types';
 
-function generateAIResponse(userMessage: string, _existingCode: string): string {
+function generateAIResponse(userMessage: string, existingCode: string): string {
   const msg = userMessage.toLowerCase();
+  void existingCode; // available for future context-aware responses
 
   if (msg.includes('trap') || msg.includes('hi-hat')) {
     return `Here's a trap hi-hat pattern in 16 steps:\n\n\`\`\`javascript\n// Trap Hi-Hat Pattern\nnote('C4', '16n');\nrest('16n');\nnote('C4', '16n');\nnote('C4', '16n');\nrest('8n');\nnote('C4', '16n');\nnote('C4', '16n');\nrest('16n');\n\`\`\`\n\nFor the step sequencer, activate steps on rows to create the pattern visually. Enable rows C and D for alternating open/closed hats.`;
