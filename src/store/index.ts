@@ -15,7 +15,7 @@ const DEFAULT_SYNTH_PARAMS: SynthParams = {
   filterType: 'lowpass',
   reverb: 0.2,
   delay: 0.1,
-  volume: 0.8,
+  volume: 0.5,
 };
 
 const createLoop = (id: string, name: string): Loop => ({
@@ -29,15 +29,96 @@ const createLoop = (id: string, name: string): Loop => ({
   color: '#c8ff00',
 });
 
+const STARTER_BEAT_CODE = `// ✦ NEON ABYSS — Dark Synthwave / A Minor ✦
+tempo(128);
+osc('sawtooth');
+env(0.006, 0.13, 0.58, 0.32);
+filter('lowpass', 1500);
+fx(0.32, 0.14);
+gain(0.7);
+
+// ─── Bass line ────────────────────────────────
+function bassline() {
+  osc('square');
+  filter('lowpass', 420);
+  env(0.003, 0.08, 0.38, 0.1);
+  gain(0.88);
+  velocity(0.92);
+  const steps = ['A2','A2','C3','A2','G2','G2','F2','G2'];
+  for (const n of steps) note(n, '8n');
+  // restore lead voice
+  osc('sawtooth');
+  filter('lowpass', 1500);
+  env(0.006, 0.13, 0.58, 0.32);
+  gain(0.7);
+}
+
+// ─── Main hook (A minor riff) ─────────────────
+function hook() {
+  velocity(0.82);
+  note('A4', '8n');
+  note('C5', '16n'); note('D5', '16n');
+  note('E5', '8n');
+  rest('16n'); note('G5', '16n');
+  note('F5', '8n'); note('E5', '8n');
+  note('D5', '16n'); note('C5', '16n');
+  note('A4', '4n');
+}
+
+// ─── Hook an octave up with extra air ─────────
+function hookHigh() {
+  filter('lowpass', 2600);
+  fx(0.52, 0.2);
+  velocity(0.88);
+  transpose(12);
+  hook();
+  transpose(0);
+  filter('lowpass', 1500);
+  fx(0.32, 0.14);
+}
+
+// ─── Chord resolution outro ───────────────────
+function resolve() {
+  velocity(0.62);
+  filter('lowpass', 1000);
+  env(0.04, 0.3, 0.7, 0.5);
+  chord(['A3','C4','E4'], '4n');
+  chord(['G3','B3','D4'], '4n');
+  chord(['F3','A3','C4'], '4n');
+  chord(['E3','G3','B3'], '2n');
+  filter('lowpass', 1500);
+  env(0.006, 0.13, 0.58, 0.32);
+}
+
+// ─── Arrangement ──────────────────────────────
+bassline();
+hook();
+bassline();
+hookHigh();
+resolve();
+rest('4n');
+`;
+
 const DEFAULT_SONG: Song = {
   id: 'default-song',
-  name: 'Untitled Track',
-  bpm: 120,
+  name: 'Neon Abyss',
+  bpm: 128,
   sections: [
-    { id: 'intro', name: 'Intro', startBeat: 0, lengthBeats: 32, loopIds: [], color: '#c8ff00' },
-    { id: 'drop', name: 'Drop', startBeat: 32, lengthBeats: 64, loopIds: [], color: '#ff006e' },
+    { id: 'intro', name: 'Intro', startBeat: 0, lengthBeats: 32, loopIds: ['loop-1'], color: '#c8ff00' },
+    { id: 'drop', name: 'Drop', startBeat: 32, lengthBeats: 64, loopIds: ['loop-1'], color: '#ff006e' },
   ],
-  loops: [createLoop('loop-1', 'Lead'), createLoop('loop-2', 'Bass')],
+  loops: [
+    {
+      id: 'loop-1',
+      name: 'Neon Abyss',
+      code: STARTER_BEAT_CODE,
+      steps: Array(8).fill(null).map(() => Array(16).fill(false)),
+      instrument: 'synth',
+      bpm: 128,
+      active: true,
+      color: '#c8ff00',
+    },
+  ],
   createdAt: Date.now(),
   updatedAt: Date.now(),
 };
@@ -134,7 +215,7 @@ export const useStore = create<Store>((set) => ({
       const id = `loop-${Date.now()}`;
       const colors = ['#c8ff00', '#00c8ff', '#ff006e', '#ffae00', '#a855f7'];
       const color = colors[s.song.loops.length % colors.length];
-      const loop = { ...createLoop(id, `Loop ${s.song.loops.length + 1}`), color };
+      const loop = { ...createLoop(id, `Loop ${s.song.loops.length + 1}`), code: STARTER_BEAT_CODE, bpm: 128, color };
       const song = { ...s.song, loops: [...s.song.loops, loop], updatedAt: Date.now() };
       persistSong(song);
       return { song, activeLoopId: id };

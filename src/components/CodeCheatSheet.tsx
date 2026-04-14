@@ -18,8 +18,56 @@ const QUICK_REFERENCE = [
     lines: ["chord(['C4', 'E4', 'G4'], '2n');", "chord(['A3', 'C4', 'E4'], '4n');"],
   },
   {
+    title: 'Functions + Loops',
+    lines: [
+      'function riff() {',
+      "  note('C4', '8n');",
+      "  note('G4', '8n');",
+      '}',
+      'for (let i = 0; i < 4; i++) riff();',
+    ],
+  },
+  {
     title: 'Durations',
     lines: ["'1n' whole", "'2n' half", "'4n' quarter", "'8n' eighth", "'16n' sixteenth"],
+  },
+  {
+    title: 'Transport + Dynamics',
+    lines: ['tempo(70);', 'velocity(0.85);', 'gain(0.7);'],
+  },
+  {
+    title: 'Pitch Control',
+    lines: ['transpose(-12);', 'detune(8);', "note('C4', '8n');"],
+  },
+  {
+    title: 'Synth Shaping',
+    lines: [
+      "osc('sawtooth');",
+      'env(0.02, 0.18, 0.45, 0.6);',
+      "filter('lowpass', 1800);",
+      'fx(0.3, 0.18);',
+    ],
+  },
+  {
+    title: 'Noise Layer',
+    lines: ["noise('16n', 'white', 0.8);", "noise('8n', 'pink', 0.6);"] ,
+  },
+  {
+    title: 'Full Sandbox Example',
+    lines: [
+      'tempo(70);',
+      "osc('triangle');",
+      'env(0.01, 0.2, 0.5, 0.4);',
+      "filter('lowpass', 2200);",
+      'fx(0.25, 0.12);',
+      'transpose(-12);',
+      'function pulse() {',
+      "  note('C3', '8n');",
+      "  noise('16n', 'white', 0.5);",
+      "  rest('16n');",
+      '}',
+      'for (let i = 0; i < 8; i++) pulse();',
+    ],
   },
 ];
 
@@ -28,6 +76,8 @@ const COMPOSITION_TIPS = [
   'Repeat a 2-4 line motif, then change the final note.',
   'Layer one loop for bass rhythm and one loop for melody.',
   'Keep note order simple first, then tighten durations.',
+  'Set sound design first with osc/env/filter/fx, then write notes.',
+  'Use transpose() and noise() to build weight without rewriting melodies.',
 ];
 
 export const CodeCheatSheet: React.FC = () => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Play, Square, SkipBack, Volume2 } from 'lucide-react';
 import { useStore } from '../store';
 import { audioEngine } from '../engine/audioEngine';
@@ -6,6 +6,29 @@ import { audioEngine } from '../engine/audioEngine';
 export const DJBooth: React.FC = () => {
   const { song, isPlaying, setIsPlaying, setBpm, setCurrentBeat } = useStore();
   const [masterVolume, setMasterVolume] = React.useState(() => audioEngine.getMasterVolume());
+
+  // Sync UI with actual engine state on every mount (handles HMR & full refresh)
+  useEffect(() => {
+    const engineRunning = audioEngine.isTransportRunning();
+    if (!engineRunning && isPlaying) {
+      setIsPlaying(false);
+      setCurrentBeat(0);
+    } else if (engineRunning && !isPlaying) {
+      // Engine still running from HMR — stop it to get a clean slate
+      audioEngine.stop();
+      setIsPlaying(false);
+      setCurrentBeat(0);
+    }
+
+    const handleBeforeUnload = () => {
+      audioEngine.stop();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handlePlay = async () => {
     if (isPlaying) {
