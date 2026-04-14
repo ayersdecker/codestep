@@ -1,9 +1,11 @@
 import React, { useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useStore } from '../store';
-import { Plus, Trash2, Play } from 'lucide-react';
+import { Plus, Trash2, Play, Save } from 'lucide-react';
 import { audioEngine } from '../engine/audioEngine';
 import { CodeCheatSheet } from './CodeCheatSheet';
+
+const SNAPSHOT_STORAGE_KEY = 'codestep-snapshot-v1';
 
 export const CodeEditor: React.FC = () => {
   const { song, activeLoopId, setActiveLoop, addLoop, removeLoop, updateLoopCode } = useStore();
@@ -23,6 +25,11 @@ export const CodeEditor: React.FC = () => {
       audioEngine.scheduleLoop(activeLoop);
       audioEngine.start();
     }
+  };
+
+  const handleSaveSnapshot = () => {
+    localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(song));
+    alert('Snapshot saved!');
   };
 
   return (
@@ -45,6 +52,9 @@ export const CodeEditor: React.FC = () => {
           </button>
         </div>
         <div className="panel-actions">
+          <button className="btn-icon" onClick={handleSaveSnapshot} title="Save Snapshot">
+            <Save size={14} />
+          </button>
           <button className="btn-accent" onClick={handleRunLoop} title="Run Loop">
             <Play size={14} /> RUN
           </button>

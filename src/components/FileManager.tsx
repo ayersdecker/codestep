@@ -3,18 +3,43 @@ import { useStore } from '../store';
 import { Save, Upload, Download, FileJson, Music } from 'lucide-react';
 import type { Song } from '../types';
 
+const SNAPSHOT_STORAGE_KEY = 'codestep-snapshot-v1';
+
 export const FileManager: React.FC = () => {
   const { song, setSong, loadSong } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleExportJSON = () => {
-    const blob = new Blob([JSON.stringify(song, null, 2)], { type: 'application/json' });
+  const downloadFile = (filename: string, content: string, contentType: string) => {
+    const blob = new Blob([content], { type: contentType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${song.name.replace(/\s+/g, '_')}.codestep`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const safeName = song.name.replace(/\s+/g, '_').toLowerCase();
+
+  const handleExportJSON = () => {
+    downloadFile(`${safeName}.codestep`, JSON.stringify(song, null, 2), 'application/json');
+  };
+
+  const handleExportRawJSON = () => {
+    downloadFile(`${safeName}.json`, JSON.stringify(song, null, 2), 'application/json');
+  };
+
+  const handleExportBeatSheet = () => {
+    const text = song.loops
+      .map((loop) => {
+        const rows = loop.steps
+          .map((row, rowIndex) => `R${rowIndex + 1}: ${row.map((step) => (step ? 'x' : '.')).join(' ')}`)
+          .join('\n');
+        return `# ${loop.name} (${loop.id})\n${rows}`;
+      })
+      .join('\n\n');
+
+    downloadFile(`${safeName}_beats.txt`, text, 'text/plain');
   };
 
   const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,17 +60,17 @@ export const FileManager: React.FC = () => {
   };
 
   const handleSaveToLocal = () => {
-    localStorage.setItem('codestep-autosave', JSON.stringify(song));
-    alert('Song saved locally!');
+    localStorage.setItem(SNAPSHOT_STORAGE_KEY, JSON.stringify(song));
+    alert('Snapshot saved locally!');
   };
 
   const handleLoadFromLocal = () => {
-    const saved = localStorage.getItem('codestep-autosave');
+    const saved = localStorage.getItem(SNAPSHOT_STORAGE_KEY);
     if (saved) {
       loadSong(JSON.parse(saved));
-      alert('Song loaded from local save!');
+      alert('Snapshot restored!');
     } else {
-      alert('No local save found.');
+      alert('No snapshot found.');
     }
   };
 
@@ -81,13 +106,16 @@ export const FileManager: React.FC = () => {
         </div>
 
         <div className="file-section">
-          <h3 className="file-section-title">LOCAL STORAGE</h3>
+          <h3 className="file-section-title">PERSISTENT STORAGE</h3>
+          <p className="file-section-desc">
+            Beats now auto-save in your browser and come back after refresh, similar to cookie-style persistence.
+          </p>
           <div className="file-actions-grid">
             <button className="btn-file btn-file--primary" onClick={handleSaveToLocal}>
-              <Save size={16} /> Save Locally
+              <Save size={16} /> Save Snapshot
             </button>
             <button className="btn-file" onClick={handleLoadFromLocal}>
-              <Upload size={16} /> Load Local Save
+              <Upload size={16} /> Restore Snapshot
             </button>
           </div>
         </div>
@@ -97,6 +125,12 @@ export const FileManager: React.FC = () => {
           <div className="file-actions-grid">
             <button className="btn-file btn-file--accent" onClick={handleExportJSON}>
               <Download size={16} /> Export .codestep
+            </button>
+            <button className="btn-file" onClick={handleExportRawJSON}>
+              <FileJson size={16} /> Export .json
+            </button>
+            <button className="btn-file" onClick={handleExportBeatSheet}>
+              <Download size={16} /> Export Beat Sheet
             </button>
             <button className="btn-file" onClick={() => fileInputRef.current?.click()}>
               <FileJson size={16} /> Import .codestep

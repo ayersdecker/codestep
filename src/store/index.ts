@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import type { Loop, Song, Section, AppState, PanelType, SynthParams, ChatMessage } from '../types';
 
+const PERSISTED_SONG_KEY = 'codestep-song-v1';
+const LEGACY_AUTOSAVE_KEY = 'codestep-autosave';
+
 const DEFAULT_SYNTH_PARAMS: SynthParams = {
   oscillatorType: 'sawtooth',
   attack: 0.01,
@@ -39,6 +42,44 @@ const DEFAULT_SONG: Song = {
   updatedAt: Date.now(),
 };
 
+const isBrowser = typeof window !== 'undefined';
+
+const getPersistedSong = (): Song | null => {
+  if (!isBrowser) return null;
+
+  const raw = localStorage.getItem(PERSISTED_SONG_KEY) ?? localStorage.getItem(LEGACY_AUTOSAVE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<Song>;
+    if (!parsed || !Array.isArray(parsed.loops) || !Array.isArray(parsed.sections)) {
+      return null;
+    }
+
+    return {
+      ...DEFAULT_SONG,
+      ...parsed,
+      loops: parsed.loops,
+      sections: parsed.sections,
+      updatedAt: parsed.updatedAt ?? Date.now(),
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistSong = (song: Song) => {
+  if (!isBrowser) return;
+
+  try {
+    localStorage.setItem(PERSISTED_SONG_KEY, JSON.stringify(song));
+  } catch {
+    // Ignore storage failures (private mode, quota exceeded).
+  }
+};
+
+const INITIAL_SONG = getPersistedSong() ?? DEFAULT_SONG;
+
 interface Store extends AppState {
   synthParams: SynthParams;
   chatMessages: ChatMessage[];
@@ -63,8 +104,8 @@ interface Store extends AppState {
 }
 
 export const useStore = create<Store>((set) => ({
-  song: DEFAULT_SONG,
-  activeLoopId: 'loop-1',
+  song: INITIAL_SONG,
+  activeLoopId: INITIAL_SONG.loops[0]?.id ?? null,
   isPlaying: false,
   currentBeat: 0,
   activePanel: 'editor',
@@ -78,7 +119,10 @@ export const useStore = create<Store>((set) => ({
     },
   ],
 
-  setSong: (song) => set({ song }),
+  setSong: (song) => {
+    persistSong(song);
+    set({ song });
+  },
   setActiveLoop: (id) => set({ activeLoopId: id }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setCurrentBeat: (beat) => set({ currentBeat: beat }),
@@ -91,36 +135,47 @@ export const useStore = create<Store>((set) => ({
       const colors = ['#c8ff00', '#00c8ff', '#ff006e', '#ffae00', '#a855f7'];
       const color = colors[s.song.loops.length % colors.length];
       const loop = { ...createLoop(id, `Loop ${s.song.loops.length + 1}`), color };
-      return { song: { ...s.song, loops: [...s.song.loops, loop], updatedAt: Date.now() }, activeLoopId: id };
+      const song = { ...s.song, loops: [...s.song.loops, loop], updatedAt: Date.now() };
+      persistSong(song);
+      return { song, activeLoopId: id };
     }),
 
   removeLoop: (id) =>
-    set((s) => ({
-      song: { ...s.song, loops: s.song.loops.filter((l) => l.id !== id), updatedAt: Date.now() },
-      activeLoopId: s.activeLoopId === id ? (s.song.loops[0]?.id ?? null) : s.activeLoopId,
-    })),
+    set((s) => {
+      const loops = s.song.loops.filter((l) => l.id !== id);
+      const song = { ...s.song, loops, updatedAt: Date.now() };
+      persistSong(song);
+      return {
+        song,
+        activeLoopId: s.activeLoopId === id ? (loops[0]?.id ?? null) : s.activeLoopId,
+      };
+    }),
 
   updateLoop: (id, updates) =>
-    set((s) => ({
-      song: {
+    set((s) => {
+      const song = {
         ...s.song,
         loops: s.song.loops.map((l) => (l.id === id ? { ...l, ...updates } : l)),
         updatedAt: Date.now(),
-      },
-    })),
+      };
+      persistSong(song);
+      return { song };
+    }),
 
   updateLoopCode: (id, code) =>
-    set((s) => ({
-      song: {
+    set((s) => {
+      const song = {
         ...s.song,
         loops: s.song.loops.map((l) => (l.id === id ? { ...l, code } : l)),
         updatedAt: Date.now(),
-      },
-    })),
+      };
+      persistSong(song);
+      return { song };
+    }),
 
   toggleStep: (loopId, row, col) =>
-    set((s) => ({
-      song: {
+    set((s) => {
+      const song = {
         ...s.song,
         loops: s.song.loops.map((l) => {
           if (l.id !== loopId) return l;
@@ -130,8 +185,10 @@ export const useStore = create<Store>((set) => ({
           return { ...l, steps };
         }),
         updatedAt: Date.now(),
-      },
-    })),
+      };
+      persistSong(song);
+      return { song };
+    }),
 
   addSection: () =>
     set((s) => {
@@ -146,26 +203,40 @@ export const useStore = create<Store>((set) => ({
         loopIds: [],
         color: colors[s.song.sections.length % colors.length],
       };
-      return { song: { ...s.song, sections: [...s.song.sections, section], updatedAt: Date.now() } };
+      const song = { ...s.song, sections: [...s.song.sections, section], updatedAt: Date.now() };
+      persistSong(song);
+      return { song };
     }),
 
   removeSection: (id) =>
-    set((s) => ({
-      song: { ...s.song, sections: s.song.sections.filter((sec) => sec.id !== id), updatedAt: Date.now() },
-    })),
+    set((s) => {
+      const song = { ...s.song, sections: s.song.sections.filter((sec) => sec.id !== id), updatedAt: Date.now() };
+      persistSong(song);
+      return { song };
+    }),
 
   updateSection: (id, updates) =>
-    set((s) => ({
-      song: {
+    set((s) => {
+      const song = {
         ...s.song,
         sections: s.song.sections.map((sec) => (sec.id === id ? { ...sec, ...updates } : sec)),
         updatedAt: Date.now(),
-      },
-    })),
+      };
+      persistSong(song);
+      return { song };
+    }),
 
-  setBpm: (bpm) => set((s) => ({ song: { ...s.song, bpm, updatedAt: Date.now() } })),
+  setBpm: (bpm) =>
+    set((s) => {
+      const song = { ...s.song, bpm, updatedAt: Date.now() };
+      persistSong(song);
+      return { song };
+    }),
 
   addChatMessage: (msg) => set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
 
-  loadSong: (song) => set({ song, activeLoopId: song.loops[0]?.id ?? null }),
+  loadSong: (song) => {
+    persistSong(song);
+    set({ song, activeLoopId: song.loops[0]?.id ?? null });
+  },
 }));
